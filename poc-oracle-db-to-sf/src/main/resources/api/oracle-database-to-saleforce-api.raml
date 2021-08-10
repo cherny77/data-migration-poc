@@ -1,0 +1,22 @@
+#%RAML 1.0
+title: Oracle Database To Saleforce API
+
+/synergysoft: 
+  /to-sfdc:
+    get:
+        queryParameters:
+          data-type:
+            required: false
+            enum:
+              - office
+              - employee
+              - role
+              - employee_role  
+        responses:
+          200:
+            body:
+              application/json:
+                  example: 
+                    message: data were updated
+
+          

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="acfb51cb-fff6-434b-8d25-654296675795" >
+		<db:oracle-connection host="${secure::сommon.host}" port="${secure::db.port}" user="${secure::db.credentials.user}" password="${secure::db.credentials.password}" instance="${secure::db.instance}"/>
+	</db:config>
+	<apikit:config name="oracle-database-to-saleforce-api-config" api="oracle-database-to-saleforce-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="321a775a-2233-4603-a0c1-0b7e27351b13" basePath="/" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="bb833a69-8f5c-44e5-b1ab-3853713d065c" >
+		<vm:queues >
+			<vm:queue queueName="transinetQUEUE" />
+		</vm:queues>
+	</vm:config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="52aa511a-0afe-4b7e-81d7-9276b7e138e8" >
+		<salesforce:basic-connection username="${secure::saleforce.credentials.username}" password="${secure::saleforce.credentials.password}" securityToken="${secure::saleforce.credentials.token}" >
+			<reconnection >
+				<reconnect />
+			</reconnection>
+		</salesforce:basic-connection>
+	</salesforce:sfdc-config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="7460a0a2-c9bc-4e32-84a3-730b93616322" file="config.yaml" key="password12345678" />
+	<error-handler name="globalError_Handler" doc:id="35c0d856-121d-4705-9662-a068677b79d1" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f01b6bb5-e893-4ba3-8b0b-f4d10a2d9a5d" type="ANY">
+			<ee:transform doc:name="Transform Message" doc:id="ea0b0cb6-f90d-4217-9d57-856c4a6c8e2b" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+   "message": error.description
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-continue>
+	</error-handler>
+
+</mule>

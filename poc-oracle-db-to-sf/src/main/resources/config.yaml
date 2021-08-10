@@ -1,0 +1,14 @@
+сommon: 
+  host: localhost
+  port: "8081"
+db: 
+  instance: "ORCLCDB"
+  port: "1521"
+  credentials:  
+    password: "![0D2cplqKlrjJFkUwU7UGvg==]"
+    user: "cherny"
+saleforce: 
+ credentials:
+    password: "![L5JUyf8vs4UxhSpE+oOtjQ==]"
+    token: "![1K030sbhDJF4DurV7Wx6gRgqdSTviYxjTJHSWgLN+gg=]"
+    username: "kyryl@synergysoft.ch"

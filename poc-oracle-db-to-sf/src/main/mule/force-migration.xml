@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+<flow name="forceRetrieveMigrateOffices" doc:id="3d0ebd5f-15ee-42c2-b1e7-d055a69b413b" >
+		<db:select doc:name="getOffices" doc:id="8f045360-040f-4275-aee0-833ff84a6e73" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * 
+FROM office ]]></db:sql>
+		</db:select>
+		<flow-ref doc:name="Migrate Office Records" doc:id="19aa7d44-a94c-411d-8dac-4d673f444369" name="upsertData"/>
+	
+</flow>
+	<flow name="forceRetrieveMigrateEmployees" doc:id="050a3338-43e8-46ae-b9cc-64a16aa2ad42" >
+		<db:select doc:name="getEmployee" doc:id="f3ee9c65-fed0-4beb-8675-372e3cd04697" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * 
+FROM employee]]></db:sql>
+		</db:select>
+		<flow-ref doc:name="Migrate Employee Records" doc:id="2c4ec199-070a-4bc6-82ac-dbcfae354ffd" name="upsertData" />
+	
+</flow>
+	<flow name="forceRetrieveMigrateRoles" doc:id="62c62521-8770-4a28-aa2a-e0ef54a1c155" >
+		<db:select doc:name="getRoles" doc:id="358ec288-4025-44c3-b508-51040e667e85" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * 
+FROM role]]></db:sql>
+		</db:select>
+		<flow-ref doc:name="Migrate Role Records" doc:id="b23248f8-3594-4913-905d-406d29951dcb" name="upsertData" />
+	
+</flow>
+	<flow name="forceRetrieveMigrateEmployeeRoles" doc:id="7a5d8e3d-afdf-4c12-9bcc-9786f22d3e58" >
+		<db:select doc:name="getEmployeeRoles" doc:id="e196c35b-81b3-4e5b-9112-4698615ab60f" config-ref="Database_Config" >
+			<db:sql ><![CDATA[SELECT * 
+FROM employee_role]]></db:sql>
+		</db:select>
+		<flow-ref doc:name="Migrate EmployeeRole Records" doc:id="c1ca623d-e1ed-4967-b6b9-efae231284e8" name="upsertData" />
+	
+</flow>
+	<flow name="RetrieveMigrateAllData" doc:id="614fb26a-e72e-4498-96ec-f4cb5a1df3c6" >
+		<scatter-gather doc:name="Scatter-Gather" doc:id="07b8eb1b-acf3-4bcd-bdf9-fb2cb1ae7215" >
+			<route >
+				<set-variable value='#["office"]' doc:name="Set dataType" doc:id="88f1517e-0ed8-47b0-a098-a159a63e1f1d" variableName="dataType" />
+				<flow-ref doc:name="Set Typee" doc:id="9dc46910-c44c-4bf9-ab55-018fe8b4e6a0" name="setTypee"/>
+				<flow-ref doc:name="Force Retrieve Migrate Offices" doc:id="5a138d76-515b-4d97-9c41-625c68928f35" name="forceRetrieveMigrateOffices"/>
+			
+</route>
+			<route >
+				<set-variable value='#["employee"]' doc:name="Set dataType" doc:id="ab1901d6-dd48-43dd-827f-28d4c489a654" variableName="dataType" />
+				<flow-ref doc:name="Set Typee" doc:id="02322585-3caa-4abb-87cc-e851f991b005" name="setTypee" />
+				<flow-ref doc:name="Force Retrieve Migrate Employees" doc:id="4c213bbc-9cc2-48d1-a48a-34579bdc7db3" name="forceRetrieveMigrateEmployees"/>
+			
+</route>
+			<route >
+				<set-variable value='#["role"]' doc:name="Set dataType" doc:id="487fdc7b-ec2b-4098-b963-3184879feec7" variableName="dataType" />
+				<flow-ref doc:name="Set Typee" doc:id="c893acdb-eb3b-4674-ac0c-d6b68290b78d" name="setTypee" />
+				<flow-ref doc:name="Force Retrieve Migrate Roles" doc:id="f2e300ae-ff59-4865-a3d2-cfd31cc6a624" name="forceRetrieveMigrateRoles"/>
+			
+</route>
+			<route >
+				<set-variable value='#["employee_role"]' doc:name="Set dataType" doc:id="a94e0286-53b8-48c2-bf2f-ba5bac31d5d9" variableName="dataType" />
+				<flow-ref doc:name="Set Typee" doc:id="87c846e6-e7b9-4bdd-8a2a-97020cc58a3e" name="setTypee" />
+				<flow-ref doc:name="Force Retrieve Migrate EmployeeRoles" doc:id="031554f8-0ddb-4e0a-9ebe-c61ed8c9c953" name="forceRetrieveMigrateEmployeeRoles"/>
+			
+</route>
+		</scatter-gather>
+	</flow>
+	
+	<flow name="retrieveMigrateTypedRecords" doc:id="3f94b603-cf24-4266-8c0f-8ef776fff38a" >
+		<logger level="INFO" doc:name="Logger" doc:id="2a591690-99ef-4d31-9315-56f506b25c5f" />
+		<choice doc:name="Choice" doc:id="f101b686-bae1-4f0f-a789-24495fe209b3">
+			<when expression='#[vars.dataType == "office"]'>
+				<flow-ref doc:name="Force Retrieve Migrate Offices" doc:id="9917cf28-d7fe-4f5f-9bf2-53d889be06fe" name="forceRetrieveMigrateOffices" />
+			
+</when>
+			<when expression='vars.dataType == "employee"'>
+				<flow-ref doc:name="Retrieve Migrate Employees" doc:id="58c6412a-d8e8-40a5-aac0-4cfc695bac96" name="forceRetrieveMigrateEmployees" />
+			
+</when>
+			<when expression='vars.dataType == "role"'>
+				<flow-ref doc:name="Force Retrieve Migrate Roles" doc:id="c59d80e3-c1df-426a-8aa6-1c3149261053" name="forceRetrieveMigrateRoles" />
+			
+</when>
+			<when expression='vars.dataType == "employee-role"'>
+				<flow-ref doc:name="Force Retrieve Migrate EmployeeRoles" doc:id="489f90cf-c24e-40dc-890e-4ef1c1a93706" name="forceRetrieveMigrateEmployeeRoles" />
+			
+</when>
+			<otherwise>
+				<flow-ref doc:name="Retrieve Migrate All Data" doc:id="3df302e4-1161-4850-9e54-075e42314458" name="RetrieveMigrateAllData" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="377b156f-041f-49e5-8369-9c9ee23a11f1" />
+	</flow>
+</mule>

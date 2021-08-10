@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<flow name="updateData" doc:id="f0bace18-6341-416c-a88b-e5cfa59c0b72" >
+		<flow-ref doc:name="Retrieve SF Object" doc:id="e9015dc6-d913-42c2-a42d-5a282c04f2af" name="retrieveSFObjectId" />
+		<ee:transform doc:name="To SF Object with Id" doc:id="c4bbff8e-db26-4b8b-8a88-42169e7ecba5">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+
+vars.dataType match {
+	case "office" -> payload map {
+					Id: $.Id,
+					Name: $.OFFICE_ID as String,
+					Address__c: $.ADDRESS,
+					Name__c: $.NAME
+					}
+	case "employee" -> 
+	payload map {
+					Id: $.Id,
+					Name: $.EMPLOYEE_ID as String,
+					First_name__c: $.FIRST_NAME,
+					Second_name__c: $.SECOND_NAME,
+					Age__c: $.AGE,
+					Office_Id__c: $.OFFICE_ID
+					}
+	case "role" -> payload map {
+					Id: $.Id,
+					Name: $.ROLE_ID as String,
+					Name__c: $.NAME,
+					}
+	case "employee-role" -> payload map {
+					Id: $.Id,
+					Name: $.REL_ID as String,
+					Employee_Id__c: $.EMPLOYEE_ID,
+					Role_Id__c: $.ROLE_ID,
+					}
+}
+]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+		<salesforce:update doc:name="Update" doc:id="0b0f9874-7029-4772-85bf-6d03a80902fc" config-ref="Salesforce_Config" type="#[vars.typee]">
+					</salesforce:update>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8a523df4-e739-416d-aec2-02d699cfc973" type="ANY"/>
+		</error-handler>
+	</flow>
+	<flow name="Delete Data" doc:id="0224dead-6810-4a55-b53d-18a2a92a1b02" >
+		<flow-ref doc:name="Retrieve SF Object" doc:id="b8a6ee7f-a8bf-4210-b1fc-238a9913c8f2" name="retrieveSFObjectId" />
+		<ee:transform doc:name="To SF Id" doc:id="bffdfa2e-7eab-49cb-a594-cf4069adbeb8">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+vars.IdToUpdate map {
+	Id: $.Id,
+	Name: $.Name
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+		<salesforce:delete doc:name="Delete" doc:id="880dbbd1-42b9-4b69-9e08-3a4cae443ebe" config-ref="Salesforce_Config">
+						<salesforce:ids><![CDATA[#[payload.Id]]]></salesforce:ids>
+					</salesforce:delete>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b0bcf06c-b340-48a8-a526-4811dc136b29" type="SALESFORCE:INVALID_INPUT, SALESFORCE:NOT_FOUND"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="76eea8b9-85db-4e73-a5de-194dca4703d2" type="ANY"/>
+		</error-handler>
+	</flow>
+	<flow name="insertData" doc:id="c0dfdd6e-084c-4fd2-8044-3b3ecab3f388" >
+		<flow-ref doc:name="To SF Object" doc:id="73ba9d1f-590e-48b3-9faf-e21daa2e0f57" name="toSFObject" />
+		<salesforce:create doc:name="Create" doc:id="fd338bc1-06b4-4b44-bef5-96c5ce20ea0b" config-ref="Salesforce_Config" type="#[vars.typee]" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1338dfd4-5862-40df-bc76-13f018731dda" type="ANY"/>
+		</error-handler>
+	</flow>
+	<flow name="setTypee" doc:id="eabbc493-e4da-468b-b358-76166baae376" >
+		<set-variable value='#[vars.dataType match {&#10;&#10;	case "office" -&gt; "Office__c"&#10;&#10;	case "employee" -&gt; "Employee__c"&#10;&#10;	case "role" -&gt; "Role__c"&#10;&#10;	case "employee_role" -&gt; "EmployeeRoleRel__c"&#10;&#10;	else -&gt; ["Office__c", "Employee__c", "Role__c", "EmployeeRoleRel__c"]&#10;&#10;}]' doc:name="Set Type" doc:id="d30e5f98-4c7f-4de7-bb3d-329cfdcbc7ee" variableName="typee" />
+	</flow>
+	<flow name="upsertData" doc:id="98de2dd7-22ab-459d-a06b-b0ac26692191" >
+		<flow-ref doc:name="To SF Object" doc:id="9c33f2b9-72fa-47a7-9950-0957b9c06814" name="toSFObject" />
+		<salesforce:upsert objectType="#[vars.typee]" externalIdFieldName="Name" doc:name="Upsert" doc:id="80ce1b38-09c4-4d9f-b248-fa54399cbaec" config-ref="Salesforce_Config" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2d49fa2a-d643-412d-8d5e-5a971ca249d9" type="ANY"/>
+		</error-handler>
+	
+</flow>
+	<flow name="retrieveSFObjectId" doc:id="2cac0c2d-ba85-41cf-8045-93993667321c" >
+		<set-variable value="#[&quot;Select id, Name
+&#10;From &quot; ++ vars.typee as String ++
+&#10;&quot; WHERE Name = '&quot; ++ (vars.recordID as String) ++ &quot;'&quot;]" doc:name="Query" doc:id="f51586ad-9343-4b7d-a583-ea38b5855801" variableName="Query" />
+		<salesforce:query doc:name="Query" doc:id="f02c6ca0-e4d9-4bec-89ae-85ecddcbbd0f" config-ref="Salesforce_Config" target="IdToUpdate">
+						<salesforce:salesforce-query><![CDATA[#[vars.Query]]]></salesforce:salesforce-query>
+					</salesforce:query>
+	</flow>
+	<flow name="logMigrationEvent" doc:id="8c3bcdeb-d625-496d-b458-d36b8abb8c38" >
+		<vm:listener queueName="transinetQUEUE" doc:name="Listener" doc:id="906b28a0-6fc2-454d-a7ca-b034da84c84b" config-ref="VM_Config"/>
+		<db:insert doc:name="Insert" doc:id="ead9c17c-194f-4e40-9614-a472fadbfb71" config-ref="Database_Config">
+			<db:sql><![CDATA[INSERT INTO migration_log (migration_date) 
+VALUES (DEFAULT)]]></db:sql>
+			<db:input-parameters><![CDATA[#[{"date" : now() as DateTime {format: 'YYYY-MM-DD HH:MM:SS'}}]]]></db:input-parameters>
+		</db:insert>
+	</flow>
+	<flow name="doMigration" doc:id="38db4433-93c0-48bd-b1bb-d4d492063333" >
+		<logger level="INFO" doc:name="Logger" doc:id="03cc6240-7fda-4e7e-bef1-2a12b0b57b59" message='#["Migration has been started."]'/>
+		<set-variable value='#[message.attributes.queryParams."data-type"]' doc:name="Set dataType" doc:id="493f573c-97f9-4062-82e2-5f0b41919914" variableName="dataType"/>
+		<flow-ref doc:name="Retrieve DB Data" doc:id="09613038-52e0-420a-91d8-54305cfe4866" name="migrate"/>
+		<vm:publish queueName="transinetQUEUE" doc:name="Log Migrate Event" doc:id="548ea8cf-88e1-44bd-b7f9-0427175db631" config-ref="VM_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="6a7505c0-c92d-4458-ac21-45ddb3c4abab">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+message: "Data were migrated successfully."]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="9a6c29c6-0b74-4872-a53f-2fb294f96827" >
+				<ee:transform doc:name="Transform Message" doc:id="d8388694-db39-4483-b6ef-2ea8966302ec" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Data weren`t saccesfully migrated",
+	error: error
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	
+</flow>
+	<flow name="migrate" doc:id="fdca7029-b9b5-4445-a567-6214730a6313" >
+		<logger level="INFO" doc:name="Logger" doc:id="4e62e2ff-ea48-43d4-9565-44e290111c17" message='#["Enter migrate flow."]'/>
+		<db:select doc:name="Get Last Date Migration" doc:id="8ba4bbee-051e-48bd-abdb-27d5ab95c186" config-ref="Database_Config" target="lastMigrationDate">
+			<db:sql ><![CDATA[SELECT *
+FROM MIGRATION_LOG
+WHERE id IN (SELECT MAX(id) from MIGRATION_LOG)]]></db:sql>
+		</db:select>
+		<choice doc:name="Full or Partial Migration" doc:id="a5b6774d-d43e-4cbb-b957-98c60c3a3ddf" >
+			<when expression="#[isEmpty(vars.lastMigrationDate)]">
+				<flow-ref doc:name="Set Type" doc:id="b15152cb-cec4-40e4-9e48-ae8690028ff2" name="setTypee" />
+				<flow-ref doc:name="Retrieve All Records by Table" doc:id="bfd49a91-adfd-4808-8114-75afb19caae9" name="retrieveMigrateTypedRecords" />
+			</when>
+			<otherwise>
+				<foreach doc:name="For Each" doc:id="f3429093-5253-4126-a802-d667fc2f57a9" collection='#[if (isEmpty(vars.dataType)) ["office", "employee", "role", "employee_role"] else [vars.dataType]]'>
+					<set-variable value='#[payload]' doc:name="Set dataType" doc:id="4da9d7cd-2352-429b-8922-06071eeb6f0d" variableName="dataType" />
+					<flow-ref doc:name="Set Type" doc:id="bf513bba-ff23-4969-8516-09f10d0d9ef1" name="setTypee" />
+					<flow-ref doc:name="Migrate Changed Records Since Last Migration" doc:id="6e4d820e-994d-4e50-a617-844c036a7220" name="getChangedData" />
+				</foreach>
+			
+</otherwise>
+		</choice>
+	</flow>
+	<flow name="getChangedData" doc:id="2ddc2aa6-74a2-4fa3-bcf9-4e25cdf137d2" >
+		<db:select doc:name="Retrieve Logs About Changes Since Last Migration" doc:id="45e09953-55fa-4e76-b151-b3cdc1f18f2d" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT *
+FROM CHANGED_DATA_LOG
+WHERE TABLE_NAME = :table_name AND CHANGE_DATE > :date]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{'date': vars.lastMigrationDate[0].'MIGRATION_DATE' as DateTime {format: 'YYYY-MM-DD HH:MM:SS'}, 
+ 'table_name': vars.dataType
+}]]]></db:input-parameters>
+		</db:select>
+		<foreach doc:name="For Each" doc:id="332dd95b-95dc-4536-908d-096000300f33" >
+			<set-variable value="#[payload.RECORD_ID]" doc:name="Set Record Id" doc:id="c0649097-e58d-47f3-ad14-8f8b33281f9a" variableName="recordID"/>
+			<set-variable value="#[payload.OPERATION]" doc:name="Set Operation" doc:id="72424517-9cc3-4842-86b5-888692bb7b13" variableName="operation"/>
+			<set-variable value='#["SELECT * &#10;&#10;FROM " ++ vars.dataType as String ++ &#10;&#10; " WHERE " ++ (vars.dataType match {&#10;&#10;	case "office" -&gt; "office"&#10;&#10;	case "employee" -&gt; "employee"&#10;&#10;	case "role" -&gt; "role"&#10;&#10;	case "employee_role" -&gt; "rel"&#10;&#10;}) ++ "_id = " ++ payload.RECORD_ID as String]' doc:name="Select Changed Record Query" doc:id="0961e3d8-2299-4a2b-847f-e258f8880eaa" variableName="retrieveQuery" />
+			<db:select doc:name="Retrieve Changed Record by ID and Table" doc:id="39fb322b-e5b4-4c48-a1a2-930fc8c4bf09" config-ref="Database_Config">
+						<reconnect />
+				<db:sql><![CDATA[#[vars.retrieveQuery]]]></db:sql>
+					</db:select>
+			<choice doc:name="Operation Choice [UPDATE, DELETE, INSERT, UPSERT]" doc:id="52bc7270-ae1a-4e8c-9d28-3ec59ab07030" >
+				<when expression='#[vars.operation == "UPDATE"]'>
+					<flow-ref doc:name="Flow Reference" doc:id="507fccb0-cf3d-4e2b-b170-31253f02043e" name="updateData" />
+
+				</when>
+				<when expression='#[vars.operation == "DELETE"]'>
+					<flow-ref doc:name="Delete Data" doc:id="649e41b1-a0c4-47f6-b015-a0f0eeda76b3" name="Delete Data" />
+
+				</when>
+				<when expression='#[vars.operation == "INSERT"]'>
+					<flow-ref doc:name="Insert Data" doc:id="215cfce1-1be0-4d86-997f-50c5744ba881" name="insertData" />
+				
+</when>
+				<when expression='#[vars.operation == "UPSERT"]'>
+					<flow-ref doc:name="Upsert Data" doc:id="2c51cf8d-ea12-460e-8d22-58c79ddd6d6c" name="upsertData" />
+				</when>
+			</choice>
+		</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="380f1e12-290b-4f7d-8c5d-8db648d64cbc" />
+	</flow>
+	<sub-flow name="toSFObject" doc:id="2d7d7ef6-0ad6-4c23-be36-c70bec27ba68" >
+		<ee:transform doc:name="To SF Object" doc:id="2149aa8b-3c07-4be9-a693-489b9352c641">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+vars.dataType match {
+	case "office" -> payload map {
+					Name: $.OFFICE_ID as String,
+					Address__c: $.ADDRESS,
+					Name__c: $.NAME
+					}
+	case "employee" -> 
+	payload map {
+					Name: $.EMPLOYEE_ID as String,
+					First_name__c: $.FIRST_NAME,
+					Second_name__c: $.SECOND_NAME,
+					Age__c: $.AGE,
+					Office_Id__c: $.OFFICE_ID
+					}
+	case "role" -> payload map {
+					Name: $.ROLE_ID as String,
+					Name__c: $.NAME,
+					}
+	case "employee_role" -> payload map {
+					Name: $.REL_ID as String,
+					Employee_Id__c: $.EMPLOYEE_ID,
+					Role_Id__c: $.ROLE_ID,
+					}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>
